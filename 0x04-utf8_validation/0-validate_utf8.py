@@ -15,40 +15,47 @@ def validUTF8(data) -> bool:
         True if data is a valid UTF-8 encoding, else return False
     """
 
-    # Check if the data set is empty
-    if not data:
-        return False
-
-    # Initialize a variable to track the number of continuation bytes
+    # Initialize the number of continuation bytes
     continuation_bytes = 0
 
-    # Iterate over the data set
+    # Iterate over the bytes in the data array
     for byte in data:
-        # Check if the byte is a start byte
-        if byte & 0b10000000 == 0:
-            # If the byte is a start byte,
-            # reset the number of continuation bytes
-            continuation_bytes = 0
 
-        # Check if the byte is a continuation byte
-        elif byte & 0b11000000 == 0b10000000:
-            # If the byte is a continuation byte,
-            # increment the number of continuation bytes
-            continuation_bytes += 1
+        # Create a mask to check if the most
+        # significant bit of the byte is set
+        mask = 1 << 7
 
-            # Check if the number of continuation bytes exceeds 4
-            if continuation_bytes > 4:
+        # If the number of continuation bytes is zero,
+        # then the byte must be a start byte
+        if not continuation_bytes:
+
+            # Keep shifting the mask to the right until we
+            # find the most significant bit that is set
+            while byte & mask:
+                continuation_bytes += 1
+                mask >>= 1
+
+            # If the number of continuation bytes is still zero,
+            # then the byte is not a valid start byte
+            if not continuation_bytes:
+                continue
+
+            # If the number of continuation bytes is 1 or greater than 4,
+            # then the byte is not a valid start byte
+            if continuation_bytes == 1 or continuation_bytes > 4:
                 return False
 
+        # Otherwise, the byte must be a continuation byte
         else:
-            # If the byte is not a start byte or a continuation byte,
-            # the data set is not a valid UTF-8 encoding
-            return False
 
-    # If the data set ends with a continuation byte,
-    # the data set is not a valid UTF-8 encoding
-    if continuation_bytes > 0:
-        return False
+            # If the most significant two bits of the byte are not set to 10,
+            # then the byte is not a valid continuation byte
+            if byte >> 6 != 0b10:
+                return False
 
-    # Otherwise, the data set is a valid UTF-8 encoding
-    return True
+        # Decrement the number of continuation bytes
+        continuation_bytes -= 1
+
+    # If the number of continuation bytes is not zero,
+    # then the byte array is not a valid UTF-8 encoding
+    return continuation_bytes == 0
